@@ -1,6 +1,6 @@
 # Local voice generation for the TikTok factory
 
-Status: proposal awaiting installation and integration approval.
+Status: approved and implemented locally; factory validation passed.
 Reviewed: 2026-10-22.
 
 ## Preserved source and local hardware
@@ -8,12 +8,16 @@ Reviewed: 2026-10-22.
 - Upstream: https://github.com/jamiepine/voicebox
 - Reviewed source commit: `8af7efe62fab8d33e2a5dfbedabaa45f68a5184f`.
 - Local checkout: `C:\Users\vgeor\GitHub\voicebox`.
-- A GitHub fork has not been created. GitHub CLI and the available browser are
-  signed out; the connected GitHub integration has no fork-creation operation.
+- Fork: https://github.com/VinodGeorge24/voicebox. GitHub CLI was authorized
+  through the user's phone using GitHub's device flow. Fork Actions are disabled.
 - Observed hardware: NVIDIA RTX 5060 Laptop GPU, 8151 MiB dedicated VRAM,
   approximately 31.3 GiB physical RAM, and 587.7 GiB free on C: at inspection.
-- Python 3.12, Git, FFmpeg, and uv already exist. No application, dependencies,
-  CUDA backend, model weights, service, or MCP registration were installed.
+- Installed Voicebox 0.5.0, its cu128 CUDA backend, Kokoro, and Chatterbox Turbo.
+  Runtime data is at `%USERPROFILE%\.local\share\voicebox`; the service binds
+  only to `127.0.0.1:17493`. No paid service, hosted inference, global MCP
+  registration, or OS startup task was configured.
+- Launcher: `scripts/start-local-voicebox.ps1`. The factory runbook is
+  `C:\Users\vgeor\GitHub\tiktok-trivia-factory\docs\local-voicebox.md`.
 
 ## Recommendation
 
@@ -31,9 +35,29 @@ profile, reference recording, and delivery settings determine the result.
 | Qwen3-TTS / VoiceDesign | A later comparison for multilingual or original character voices | Larger models and a separate compatibility/quality check | Apache-2.0 for the reviewed official models |
 
 Voicebox code is MIT licensed. Check the exact selected weights and dependencies
-separately. No voice model was run or benchmarked during this review; equal
-quality or speed to ElevenLabs has not been established. Local inference avoids
+separately. Both selected models were generated and benchmarked locally; equal
+quality to ElevenLabs has not been established. Local inference avoids
 metered hosted speech API calls, but uses local disk, compute, power, and time.
+
+## Verified results
+
+- Factory regression suite: 108 tests passed.
+- Real CLI/Telegram adapter flow produced, reviewed, and approved a local MP4.
+  Publish preparation produced 30 fps video with an identical reviewed AAC
+  stream hash. No TikTok upload or public posting was performed.
+- Rendered question and answer frames were visually checked; narration fits
+  the effective scene boundaries and the countdown follows question narration.
+- Warm generation comparison on this laptop: Kokoro 0.80-0.95 seconds for
+  6.73-10.58 seconds of audio; Chatterbox Turbo 8.05-12.08 seconds for
+  5.92-9.64 seconds of audio. These are small local samples, not general claims.
+- Chatterbox uses a reference generated from the local Kokoro preset. No real
+  person's voice was imported. WAV samples and comparison metadata are under
+  ignored `data/factory-samples/`.
+- Release CUDA archive checksums and Chatterbox LFS weight hashes were checked.
+  Windows model snapshot symlink failures were resolved with regular files,
+  without changing privileges or security settings.
+
+The sequence below records the approved implementation approach.
 
 ## Proposed installation and integration sequence
 
@@ -78,11 +102,10 @@ includes `profile_id`, `text`, `language`, `engine`, and optional generation
 settings. Use the file-generation API for videos; `/speak` is intended for agent
 playback. Keep personality rewriting disabled for approved scripts.
 
-The current factory only accepts `none` and `windows_sapi` voice providers.
-Its mixer expects 44.1 kHz PCM WAV and uses fixed scene boundaries. The upload
-rerender calls `render_manifest_to_mp4(..., preview=False)` without forwarding
-the voiceover provider, causing it to use the default `none`. These are explicit
-integration changes, not a drop-in URL substitution.
+Before integration, the factory accepted `none` and `windows_sapi` voice providers,
+used fixed scene boundaries, and lost narration during the upload rerender. The
+implemented `voicebox` adapter, measured speech timing, and approved-AAC stream
+copy resolve these gaps without adding ML dependencies to the factory.
 
 Relevant factory files: `config.py`, `audio.py`, `render_manifest.py`,
 `renderer.py`, `uploads.py`, CLI/Telegram callers, and audio/upload tests.
